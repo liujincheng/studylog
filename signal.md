@@ -1,16 +1,21 @@
->> data structure <<
+##data structure
+```c
 struct sighand_struct {
 	atomic_t count;
 	struct k_sigaction action[_NSIG];  kernel sig action is 64
 	spinlock_t siglock;
 	wait_queue_head_t signalfd_wqh;
 };
+```
 
-
->> main flow <<
->>>> 1. sysrq send sig <<<<
+##main flow 
+###sysrq send sig
+```c
 send_sig_all -> do_send_sig_info(sig, SEND_SIG_FORCED, p, true) -> send_signal(sig, info, p, group);
+```
 
+详细函数流程
+```
 static void send_sig_all(int sig)
 {
 	struct task_struct *p;
@@ -55,13 +60,19 @@ static inline struct sighand_struct *lock_task_sighand(struct task_struct *tsk,
 	(void)__cond_lock(&tsk->sighand->siglock, ret); //compier option. add "+1" context marker for success one
 	return ret;
 }
+```
 
->>>> 2. exception sig <<<<
+###exception sig
+cpu运行期间出现同步异常，比如缺页，段错误等，需要使用异常打断当前的执行流程，并发送信号。
+```c
 do_undefinstr() -> arm64_notify_die() send SIGILL -> when user mode: force_sig_info(info->si_signo, info, current); kernel mode: die()
 SIGSEGV/SIGBUS: do_bad_area()/do_translation_fault() -> __do_user_fault(tsk, addr, esr, sig, code, regs); -> force_sig_info(sig, &si, tsk);
+```
 
->>>> 3. kill system call <<<<
-there are three system call about siganl: kill(), tkill(), tgkill()
+###kill system call
+有三个与信号相关的系统调用，分别用于向适当的目标发送信号。  
+他们分别是： kill() tkill, tgkill。以下是这些系统调用的主要函数流程。  
+```c
 sys_kill (si_code is SI_USER) -> kill_something_info(sig, &info, pid) 
     |-->if pid > 0, kill_pid_info(sig, info, find_vpid(pid));
 		|-->group_send_sig_info(sig, info, p); {default send signal to all task's membor(thread) }
@@ -85,36 +96,41 @@ int __kill_pgrp_info(int sig, struct siginfo *info, struct pid *pgrp)
 	} while_each_pid_task(pgrp, PIDTYPE_PGID, p);
 	return success ? 0 : retval;
 }
+```
 
+以下是发送信号的流程
+```c
 group_send_sig_info() -> do_send_sig_info() -> send_signal() -> __send_signal()
 send_sig() -> send_sig_info() -> do_send_sig_info() -> send_signal() -> __send_signal()
 oom_kill_process() -> do_send_sig_info() -> send_signal() -> __send_signal()
- 
+``` 
 
->> linux study <<
-local_irq_save(*flags); //进入临界区时禁止中断, 保存中断状态
-spin_unlock_restore(lock, *flags)
-local_irq_restore(*flags)
+##linux study
+###禁用中断
+主要包括以下函数：
+    local_irq_save(*flags); //进入临界区时禁止中断, 保存中断状态
+    spin_unlock_restore(lock, *flags)
+	local_irq_restore(*flags)
 
 spin_trylock()试图获得某个特定的自旋锁，如果该锁已经被争用，那么立刻返回非0值，而不会自旋等待锁被释放；如果获得这个自旋锁，返回0。
-#define raw_spin_trylock(lock) __cond_lock(lock, _raw_spin_trylock(lock))
-# define __cond_lock(x,c)   ((c) ? ({ __acquire(x); 1; }) : 0)
+	#define raw_spin_trylock(lock) __cond_lock(lock, _raw_spin_trylock(lock))
+	# define __cond_lock(x,c)   ((c) ? ({ __acquire(x); 1; }) : 0)
 
+这里是一个实际的例子：
+	rcu_read_lock();  // read lock, when try to write, wait for it
+	sighand = rcu_dereference(tsk->sighand); //rcu api to defer pointer
+	rcu_read_unlock();
 
-rcu_read_lock();  // read lock, when try to write, wait for it
-sighand = rcu_dereference(tsk->sighand); //rcu api to defer pointer
-rcu_read_unlock();
-
-linux static check tool
+###linux static check tool
 use same symbol to mark code attribute, such as __user, __kernel, __iomem, __bitwise, __aquire, __release
-http://yarchive.net/comp/linux/sparse.html
-# define __acquires(x)rcu_read_lock__attribute__((context(x,0,1)))   before using x, it should be 0, and after using, it should be 1
-# define __releases(x)rcu_read_lock__attribute__((context(x,1,0)))
-# define __acquire(x)rcu_read_lock__context__(x,1) x ref count "+1"
-# define __release(x)rcu_read_lock__context__(x,-1)  x ref count "-1"
-# define __cond_lock(x,c)rcu_read_lock((c) ? ({ __acquire(x); 1; }) : 0)
+	http://yarchive.net/comp/linux/sparse.html
+	# define __acquires(x)rcu_read_lock__attribute__((context(x,0,1)))   before using x, it should be 0, and after using, it should be 1
+	# define __releases(x)rcu_read_lock__attribute__((context(x,1,0)))
+	# define __acquire(x)rcu_read_lock__context__(x,1) x ref count "+1"
+	# define __release(x)rcu_read_lock__context__(x,-1)  x ref count "-1"
+	# define __cond_lock(x,c)rcu_read_lock((c) ? ({ __acquire(x); 1; }) : 0)
 
->>>> system call entry point in kernel <<<<<
-SYSCALL_DEFINE5
+###system call entry point in kernel
+如何快速找一个中断的函数原型？  
 search "SYSCALL_DEFINE" globally, and then grep the system call name.
 
