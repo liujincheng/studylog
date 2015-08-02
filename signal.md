@@ -15,7 +15,7 @@ send_sig_all -> do_send_sig_info(sig, SEND_SIG_FORCED, p, true) -> send_signal(s
 ```
 
 详细函数流程
-```
+```c
 static void send_sig_all(int sig)
 {
 	struct task_struct *p;
@@ -106,21 +106,6 @@ oom_kill_process() -> do_send_sig_info() -> send_signal() -> __send_signal()
 ``` 
 
 ##linux study
-###禁用中断
-主要包括以下函数：
-    local_irq_save(*flags); //进入临界区时禁止中断, 保存中断状态
-    spin_unlock_restore(lock, *flags)
-	local_irq_restore(*flags)
-
-spin_trylock()试图获得某个特定的自旋锁，如果该锁已经被争用，那么立刻返回非0值，而不会自旋等待锁被释放；如果获得这个自旋锁，返回0。
-	#define raw_spin_trylock(lock) __cond_lock(lock, _raw_spin_trylock(lock))
-	# define __cond_lock(x,c)   ((c) ? ({ __acquire(x); 1; }) : 0)
-
-这里是一个实际的例子：
-	rcu_read_lock();  // read lock, when try to write, wait for it
-	sighand = rcu_dereference(tsk->sighand); //rcu api to defer pointer
-	rcu_read_unlock();
-
 ###linux static check tool
 use same symbol to mark code attribute, such as __user, __kernel, __iomem, __bitwise, __aquire, __release
 	http://yarchive.net/comp/linux/sparse.html
@@ -130,7 +115,4 @@ use same symbol to mark code attribute, such as __user, __kernel, __iomem, __bit
 	# define __release(x)rcu_read_lock__context__(x,-1)  x ref count "-1"
 	# define __cond_lock(x,c)rcu_read_lock((c) ? ({ __acquire(x); 1; }) : 0)
 
-###system call entry point in kernel
-如何快速找一个中断的函数原型？  
-search "SYSCALL_DEFINE" globally, and then grep the system call name.
 
