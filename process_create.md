@@ -8,6 +8,7 @@ copy_process()
           +--> tsk = alloc_task_struct_node(node);   在cachep中申请task_struct
           +--> ti = alloc_thread_info_node(tsk, node);  使用alloc_pages_node分配0x8192字节。task->stack=ti
 ```
+ARM64下，一个内核thread info的栈的大小为4个page，也即16KB。可以查询THREAD_SIZE_ORDER变量得到。在arch相关的thread_info中查询。
 
 ###[fork与vfork的区别](http://blog.csdn.net/jianchi88/article/details/6985326)
 fork（）与vfock（）都是创建一个进程，那他们有什么区别呢？总结有以下三点区别： 
