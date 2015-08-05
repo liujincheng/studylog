@@ -7,6 +7,8 @@ MT6753在device tree中配置了MCUCFG的基地址。
       reg = <0x10200600 0xa00>;  
     };
 
+而last pc的基地址，则存放在MCUCFG base + 0x410的位置，也就是0x10200410。在该地址中，依次存放8个cpu的pc/sp/lr寄存器。
+
 #驱动
 
 /sys/bus/platform/drivers/lastpc
@@ -16,17 +18,8 @@ driver_create_file(&lastpc_drv.plt_drv.driver, &driver_attr_lastpc_dump);
 driver_create_file(&lastpc_drv.plt_drv.driver, &driver_attr_lastpc_reboot_test);
 
 
-[LAST PC] CORE_0 PC = 0x41e0c29e( + 0x0), FP = 0x41e74400, SP = 0x0
-[LAST PC] CORE_1 PC = 0x0( + 0x0), FP = 0x0, SP = 0x0
-[LAST PC] CORE_2 PC = 0x0( + 0x0), FP = 0x0, SP = 0x0
-[LAST PC] CORE_3 PC = 0x0( + 0x0), FP = 0x0, SP = 0x0
-[LAST PC] CORE_4 PC = 0x0( + 0x0), FP = 0x0, SP = 0x0
-[LAST PC] CORE_5 PC = 0x0( + 0x0), FP = 0x0, SP = 0x0
-[LAST PC] CORE_6 PC = 0x0( + 0x0), FP = 0x0, SP = 0x0
-[LAST PC] CORE_7 PC = 0x0( + 0x0), FP = 0x0, SP = 0x0
-
 #last pc in lk
-64位系统中，pc地址为64bit，需要使用64位的数据类型来存储。
+64位系统中，pc地址为64bit，需要使用64位的数据类型来存储。在打印pc地址的时候，也需要使用%llx格式，否则会形成混乱。
 typedef unsigned int  __u32;
 typedef unsigned long long __u64
 
@@ -40,9 +33,6 @@ mt_typedefs.h
     (*(volatile unsigned int * const)(reg)) = (val)
 
 int g_is_64bit_kernel = 0;
-
-
-
 
 
 
