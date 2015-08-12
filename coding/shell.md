@@ -101,9 +101,9 @@ done
 ```
 
 ##在字符串中过滤
+如果我们拿到一个绝对路径的文件名，如/home/somebody/demo/long.name.txt，我只想取得long这个文件名shell中的模式匹配运算符非常的好用。 file_name=/home/somebody/demo/long.name.txt 第一步去掉路径名 file_name=${file_name##/*/} 结果是long.name.txt 第二步去掉后缀名 file_name=${file_name%%.*} 结果就是long了。   模式匹配运算符号： ${var#pattern}最短匹配开头处，并删除该部分。 ${var##pattern}最长匹配开头处，并删除该部分。 ${var%pattern}最短匹配结尾处，并删除该部分。 ${var%%pattern}最长匹配结尾处，并删除该部分。
 ```sh
 commit_author=${commit_author%%@}
 ```
 
-取commit_author原始值@字符以前的内容
 
