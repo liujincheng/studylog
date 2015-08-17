@@ -65,7 +65,7 @@ GPT1用于clk source，在setup_clksrc(freq)中注册为FREE_MODE, 无中断触�
 
 # CPUXGPT
 ##使用场景
-cpuxgpt as syscnt，用于cpu local的counter。
+在手机Soc中，为省电，需要将不用的cpu shutdown。在该场景下，一个需求就是判断合适cpu不用。这是cpuxgpt的应用场景，用于cpu idle检测。因为需要针对单独每一颗cpu shutdown，所以需要cpu local的timer。
 
 ##寄存器
 DataSheet中关于CPUXGPT的资料含混不清，而且手册中CPUXGPT寄存器的编号为96~103，这与device tree中定义的中断编号也对应不上来。因此对CPUXGPT的study主要依据分析code来。主要从两个方面来分析：谁在用它，它是专门实现的。涉及到的寄存器手册，以code中实际使用的为准。
@@ -109,6 +109,8 @@ static inline u64 arch_counter_get_cntvct(void)
 ## 设计原理
 
 # arch-timer
+arch-timer为各个cpu core中进程切换所需要的HZ。
+
 ## 标准
 在ARM中，外部中断包括PPI（private），SPI（shared）两类，前者是per cpu独享的，后者是所有cpu core共享的。arch-timer是每个cpu私有的timer，使用PPI。在申请号时，使用request_percpu_irq接口。
 

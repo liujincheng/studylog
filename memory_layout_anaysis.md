@@ -9,8 +9,16 @@ MTK平台总体上，memory layout情况和QCT平台有较大差异，它更多�
 1. kernel中通过device tree或hard code指定base address和size，然后通过memblock_reserve从memblock中挖掉这段内存。使用者：htc_reboot_info, mrdump_clbock, minidump, RTB, LK LOG等。
 1. 在device tree中指定要预留memory的size，由kernel动态去reserve一段物理内存。使用者包括：Modem，Wifi。
 
+#在LK中隐藏memory region
+包括三个步骤，分别是从preloader传入的参数获取memblock信息，使用mblock_reserve函数修改memblock参数，然后通过platform_atag_append传递给kernel。如下，是一个在LK中reserve memory的实例：
+
+```c
+g_fb_base = mblock_reserve(&g_boot_arg->mblock_info, g_fb_size, 0x10000, 0x100000000, RANKMAX);
+```
+
 #memblock
 kernel通过memblock来管理内存块，如下是memblock的数据结构，它包含两个主要部分，memory和reserved，分别用于表示可用内存与预留内存。memblock_type则用于记录每种类型的memblock中的memory region的cout，total_size等，而regions指针则指向一个记录所有memory_gegion的数组。
+
 
 ```c
 struct memblock_type {
@@ -35,8 +43,19 @@ struct memblock {
   * /proc/mtk_memcfg/memory_layout
   * /proc/iomem 它的值和debugfs/memblock/memory中的一致。
 
+## melblock的初始化
+但是这个流程中，没有找到谁调用的early_init_dt_scan_memory() 
+
+```
+early_init_dt_scan_memory() -> early_init_dt_add_memory_arch() -> arm_add_memory(base, size); 
+    +--> struct membank *bank = &meminfo.bank[meminfo.nr_banks];
+    +--> 设置这个bank
+```
+
+
 ## memblock/reserved
 这个文件可以看到当前系统reserve了哪些内存块，起始地址以及结束地址。需要注意，在这个layout中，reserved memory的最后一个，和memory size不匹配。比如memory为2G，其实地址为0x40000000，但实际的最后的结束地址却只有0xBDDC0000。这就是前面提到的，LK告诉Kernel的memblock siz就只有这么大。
+
 ```
 cat /sys/kernel/debug/memblock/reserved                                        <
    0: 0x000000004007b000..0x000000004120c09f
@@ -47,6 +66,7 @@ cat /sys/kernel/debug/memblock/reserved                                        <
 
 ## memblock/memory
 这个文件记录系统可用的物理内存的范围，换个角度来说，系统会为这个文件中所有的memory region来创建页表。实际的情况比这要稍微复杂一些，因为创建页表要按照pmd来对齐，一个pmd的size为1M，但实际上，这个文件中部分entry却不是1M对齐的。这里不详细分析，目前我的理解是，先建立的页表，创建完成之后，有模块使用memblock_remove()函数将之从可用内存中拿掉。
+
 ```
 cat /sys/kernel/debug/memblock/memory                                          <
    0: 0x0000000040000000..0x0000000042ffffff
@@ -88,11 +108,13 @@ Kernel bootup阶段reserve的memory都是通过memblock_reserve()这个API来res
 可以对照我的这份示例修改code。[http://git.htc.com:8081/#/c/605739/](http://git.htc.com:8081/#/c/605739/)
 
 1. **修改`memblock_dbg`默认打印级别**。虽然可以通过修改printk的打印级别，但因为memblock的打印在开机非常早就印出来，所以只能修改code。
+
 ```c
 #define memblock_dbg(fmt, ...) \
 printk(KERN_INFO pr_fmt(fmt), ##__VA_ARGS__)
 ```
 改为：
+
 ```
 #define memblock_dbg(fmt, ...) \
 printk(KERN_WARNING pr_fmt(fmt), ##__VA_ARGS__)
@@ -110,6 +132,7 @@ printk(KERN_WARNING pr_fmt(fmt), ##__VA_ARGS__)
 
 # memory layout申请大致流程
 总的来说，memory相关初始化都在setup_arch()中，下面简要摘抄一些代码流程。
+
 ```
 setup_arch()
     +--> setup_machine_fdt(__fdt_pointer);  读取fdt表，方便后续找reserve-memory相关的节点
