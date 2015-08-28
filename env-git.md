@@ -61,6 +61,7 @@ http://www.liaoxuefeng.com/wiki/0013739516305929606dd18361248578c67b8067c8c017b0
 5. 做 git merge MTK branch 名字  
   
 使用git stash可以临时缓存。若长久缓存或多次缓存，则应该使用分支来管理，方便merge代码。  
+
 *  git stash  缓存当前工作区的代码内容，便于后续恢复。执行该命令后，git status看，当前工作区是干净的。  
 *  git stash list  查看缓存区中的工作区  
 *  git stash apply  stash@{0}  恢复指定工作区，缓存仍然保留。下次还可以继续用。  
@@ -68,6 +69,7 @@ http://www.liaoxuefeng.com/wiki/0013739516305929606dd18361248578c67b8067c8c017b0
   
 如何回退代码。  
 方法1.   
+
 *  git log  #记录关心的commit id  
 *  git reset --soft HEAD^  #回退修改，使用reset，使得本次的修改都编程待提交状态。  
 *  git reset xxx.c  # 将待修改的文件变为untrack状态。  
@@ -77,13 +79,16 @@ http://www.liaoxuefeng.com/wiki/0013739516305929606dd18361248578c67b8067c8c017b0
   
 方法2.  
 修改文件  
+
 *  git commit --amend   #官方推荐方法，但是不好用。因为提交之前不需要git add -up，导致一些无意义的回车符修改被添加进去了。  
   
 如何永久修改提交者的名字：  
+
 *  git config --global user.name "jincheng_liu"   
 *  git config --global user.email " jincheng_liu@htc.com"  
   
 有用的全局命令  
+
 *  git config --global alias.lg "log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"  
 *  git config --global alias.st status  将git status缩写为git status  
 *  git config --global alias.co checkout  
@@ -94,6 +99,7 @@ http://www.liaoxuefeng.com/wiki/0013739516305929606dd18361248578c67b8067c8c017b0
 *  git blame filename.c 显示文件的每一行是在那个版本最后修改。  
   
 #repo  
+
 *  repo forall  -r "lk|kernel|ftm|nvram"  -p -c git lg --since "1 days ago" 查看最近一天repo库的修改。这个命令很有用。  
 *  repo forall -r "lk|kernel|ftm|nvram" -p -c git log --since "2 days ago" --full-diff   > xx-xx.log 将最新的修改写到log中。  注意这里使用了全拼log。  
   
