@@ -113,12 +113,14 @@ Kernel bootup阶段reserve的memory都是通过memblock_reserve()这个API来res
 #define memblock_dbg(fmt, ...) \
 printk(KERN_INFO pr_fmt(fmt), ##__VA_ARGS__)
 ```
+
 改为：
 
 ```
 #define memblock_dbg(fmt, ...) \
 printk(KERN_WARNING pr_fmt(fmt), ##__VA_ARGS__)
 ```
+
 2. 找到memblock的申请者，修改memblock_reserve() 和memblock_free()
     * 在函数开头处添加show_stack(0,0);
     * 修改该函数中的memblock_dbg()调用，将size打印出来
