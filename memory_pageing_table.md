@@ -79,7 +79,7 @@ return ret;
 ```
 
 #页表应用举例
-##设置page只读###
+##动态设置page只读###
 设置page只读的方法，调用者需保证起始虚拟地址按page对齐，len按page对齐。核心在于找到pte，然后使用pte_wrprotect修改pte的属性。
 ```c
 int setKVaddrRDONLY(unsigned long virt_addr_start,unsigned long len)
@@ -127,6 +127,50 @@ pte_t *ptep, pte_t pte)
 set_pte(ptep, pte);
 }
 ```
+
+## 静态设置page只读
+1. 在device tree的reserved-memory中，设置no-map
+
+```
+  reserved-memory {
+    #address-cells = <2>;
+    #size-cells = <2>;
+    status = "okay";
+    ranges;
+
+    htc_reboot_info@83C30000 {
+      reg = <0x0 0x83C30000 0x0 0x400>;
+      save-emmc-feature = <1>;
+      save-emmc-partition = "/dev/block/platform/mtk-msdc.0/by-name/para";
+      save-emmc-offset = <0x24600>;
+      no-map;
+      compatible = "htc,reboot-info";
+      reg-names = "htc_reboot_info_res";
+    };  
+  }
+```
+
+2. setup_arch过程中，会扫描reserved-memory，并建立页表
+
+大概的函数流程为： 
+```
+setup_arch() -> arm64_memblock_init() -> early_init_fdt_scan_reserved_mem();
+    +--> of_scan_flat_dt(__fdt_scan_reserved_mem, NULL);
+        +--> 遍历所有的reserved memory node，并执行__fdt_scan_reserved_mem
+            +--> 检查node是否合法，比如depth，status等。
+            +--> ret = __reserved_mem_reserve_reg
+                +--> 查找node中是否有通过reg指定base address，如果没有，则返回-NOENT，将会动态reserve memory
+                +--> 查找node中是否有no-map属性
+                +--> while循环，检查该node中所有的cell，并执行early_init_dt_reserve_memory_arch(base, size, nomap)
+                    +--> early_init_dt_reserve_memory_arch(base, size, nomap)  执行reserve操作
+                        +--> if no-map, memblock_remove(base, size)
+                        +--> else，memblock_reserve(base, size)
+                    +--> 保存first cell fdt_reserved_mem_save_node(node, uname, base, size);
+            +--> 如果返回值为为-NOEINT， 则fdt_reserved_mem_save_node将node添加到reserved_mem数组
+    +--> fdt_init_reserved_mem();  从reserved_mem中，为没有指定reg的node动态reserve memory
+```
+
+简单将，通过no-map标记的memory，不会为它创建页表，除非使用ioremap，为这些page重新映射虚拟地址，否则无法正常访问。如果有模块直接通过写地址的方式访问，将会触发data-abort。
 
 ##Zero page
 ZERO_PAGE，比如进程fork的时候，待分配page。

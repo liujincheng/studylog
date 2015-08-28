@@ -1,5 +1,5 @@
 add elf header to ramdump 2 USB
-===
+
 Target and Design:
 
 for ramdump2USB, need full dump and mini dump can be saved at the same time. 
@@ -109,32 +109,7 @@ mrdump_mini_add_loads()
 ```
 
 ##full ramdump
-main flow:
-kernel panic
-prepare mrdump_control_block, sig is XRDUMP3, 
-
-compress memory in lk, log
-```
- [2440] D:Boot record found at 0x42300000[5852], cb 0x42300000
- [2440] D:sram record with mode 1
- [2440] D:reset_string of aee: Kernel Oops
- [2460] I:Kdump triggerd by 'KERNEL-OOPS'
- [2460] I:Output to EXT4 Partition
- [2460] [PART_LK][get_part] userdata
- [2480] I:userdata offset: 1209139ALPS.L1.MP3.TC7SP.6753.p20_0529_V72, size: 776 Mb
- [2480] I: emmc dumping(address 0x40000000, size:0M)
- [2480] mem_size:0x7edc0000, phys_offset:0x40000000, DRAM_P_A:0x40000000, total:0x7edc0000
- [2500] I: NO_Delete.rdmp starts at LBA: 4096
- [2500] I: SYS_COREDUMP   starts at LBA: 4572
- [2500] I:kernel page offset 18446743798831644672
- [2520] I:64b kernel detected
- [2520] ... Written 0M
- [2520] D:kzip_add_file: zf 0x41eae648(0x41e1b789) SYS_COREDUMP
- [2520] D:-- Compress memory 41eac63c, size 8192
- [2520] D:-- Compress memory 40000000, size 2128347136
-```
-
-SYS_CORE_DUMP format
+###SYS_CORE_DUMP format
 ```
 -rwxr--r-- 1 liu liu 2128355328  5月  5 16:43 SYS_COREDUMP*    --0x7EDC2000
 Program Headers:
@@ -169,6 +144,10 @@ another case, hexdump mrdump_cblock.bin   live capture<br>
 00000000   58 52 44 55  4D 50 30 33  00 00 00 00  02 00 00 00  08 00 00 00  00 00 00 00  00 00 00 00  C0 FF FF FF  XRDUMP03........................
 
 02302000   58 52 44 55  4D 50 30 32  00 00 00 00  02 00 00 00  08 00 00 00  00 00 00 00  00 00 00 00  C0 FF FF FF  XRDUMP02........................<br>
+
+### data structure
+
+![ramdump structure](pictures/debug_ramdump_cblok.png)
 
 ```
  126 struct mrdump_control_block {
@@ -211,3 +190,23 @@ another case, hexdump mrdump_cblock.bin   live capture<br>
  123     char log_buf[2048];             
  124 }; 
 ```
+
+### code flow in lk
+在LK中负责抓取DDR中的内容，加上elf的头部形成SYS_CORE_DUMP，再压缩放到emmc中预留的位置。
+
+```
+kedump_ui(mrdump_cblock)
+    +--> kdump_emmc_output(mrdump_cblock, total_dump_size);
+    +--> aee_mrdump_flush_cblock(mrdump_cblock);  flush mrdump control block的改动
+        +--> kdump_ext4_output(kparams, total_dump_size, mrdump_dev_emmc_ext4()); 
+            +--> mrdump_dev->read  读取InfoLBA块，校验，获取为full ramdump在emmc中预留的位置。
+            +--> kdump_core_header_init(mrdump_cb, kparams->phys_offset, total_dump_size);  初始化elf头部
+            +--> kzip_add_file(zf, memlist, "SYS_COREDUMP")  构造zip handle，full ramdump由elf和ddr两块mem entry构成。
+            +--> lba_write_cb(handle, NULL, 0) 写emmc
+    +--> mtk_wdt_restart(); try to reset device, 实际上并没有reset。
+```
+
+
+
+
+
