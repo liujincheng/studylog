@@ -1,4 +1,4 @@
-摘要：  
+摘要：
 介绍页表建立过程，以及在开发中页表的使用实例。
 
 ---
@@ -8,15 +8,17 @@
 include/linux/mm_types.h
 
 **术语**
-页框        具体的memory，大小通常为4K  
-页表项     pte，用于虚拟地址映射时的页转换  
-页描述符  struct page  
+页框        具体的memory，大小通常为4K
+页表项     pte，用于虚拟地址映射时的页转换
+页描述符  struct page
 
 ##页表属性
 在linux内核中，很多情况下都需要设置page为只读。比如设置_text段为只读，防止代码段被踩。再比如fork出来的子进程，会设置为只读，当有写需求时，会触发中断拷贝新的page。除了只读属性，还有smp shared，cache type等属性。
 
-在管理页框过程中，比如分配新的page，或查找不活跃的page，或回收page，或写page到emmc等情况，会检查struct page即页描述符中的属性。 
+在管理页框过程中，比如分配新的page，或查找不活跃的page，或回收page，或写page到emmc等情况，会检查struct page即页描述符中的属性。
+
 page的属性设置在页表项pte，与设置在页描述符之间有何区别和关联？以do_brk()中申请memory设置属性为例，去掉与page属性设置无关的代码。
+
 ```c
 unsigned long do_brk(addr, len)
 {
@@ -37,20 +39,24 @@ unsigned long do_brk(addr, len)
   83             pgprot_val(arch_vm_get_page_prot(vm_flags)));
   84 }
 ```
-protection_map，P代表private映射，S代表Shared映射。之后的三个字符分别代表R/W/Exec。该字符在common code中定义，具体的实现取决与不同的arch。  
+
+protection_map，P代表private映射，S代表Shared映射。之后的三个字符分别代表R/W/Exec。该字符在common code中定义，具体的实现取决与不同的arch。
 这里的关键在于protection_map。检查vm_flags中的read/write/exec/shared属性，查询protection_map，得到prot_val。或者根据arch_vm_get_page_prot查询prot_val。
 
 以__P001为例，可以看到，最终会被转化为pte的属性
+
 ```c
 #define __P001  __PAGE_READONLY
 #define __PAGE_READONLY     __pgprot(_PAGE_DEFAULT | PTE_USER | PTE_NG | PTE_PXN | PTE_UXN | PTE_RDONLY)
 #define PTE_USER        (_AT(pteval_t, 1) << 6)     /* AP[1] */
 ```
+
 我们知道，pte本质上是一个指针，指向页框。这个指针是按照12bit对齐的，因此最低12个bit可以用于表示protection属性。而在64位系统中，高30位也未使用，可以用来表示page的属性。
 page和pte都有类似readonly的保护属性，两者的区别，在于page中的保护属性，是在物理内存的角度，表示这个page的固有属性。而pte，则是站在线性地址的角度，表示这个page的属性，并非一成不变的。
 
 
 #页表的初始化流程
+
 ```c
 Setup_arch
 |--> paging_init()
@@ -62,6 +68,7 @@ Setup_arch
 ```
 
 pgd建立过程
+
 ```c
 static inline pgd_t *pgd_alloc(struct mm_struct *mm)     //在mips中，mm参数其实没有用到
 {
@@ -74,13 +81,14 @@ static inline pgd_t *pgd_alloc(struct mm_struct *mm)     //在mips中，mm参数
   memcpy(ret + USER_PTRS_PER_PGD, init + USER_PTRS_PER_PGD,
          (PTRS_PER_PGD - USER_PTRS_PER_PGD) * sizeof(pgd_t));
  }
-return ret; 
+return ret;
 }
 ```
 
 #页表应用举例
 ##动态设置page只读###
 设置page只读的方法，调用者需保证起始虚拟地址按page对齐，len按page对齐。核心在于找到pte，然后使用pte_wrprotect修改pte的属性。
+
 ```c
 int setKVaddrRDONLY(unsigned long virt_addr_start,unsigned long len)
 {
@@ -146,13 +154,14 @@ set_pte(ptep, pte);
       no-map;
       compatible = "htc,reboot-info";
       reg-names = "htc_reboot_info_res";
-    };  
+    };
   }
 ```
 
 2. setup_arch过程中，会扫描reserved-memory，并建立页表
 
-大概的函数流程为： 
+大概的函数流程为
+
 ```
 setup_arch() -> arm64_memblock_init() -> early_init_fdt_scan_reserved_mem();
     +--> of_scan_flat_dt(__fdt_scan_reserved_mem, NULL);
