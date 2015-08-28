@@ -1,7 +1,30 @@
 
-[memory layout分析方法](memory_layout_anaysis.html)
+memory相关
 ---
-本文主要从物理内存的角度去分析memory layout。
+[Linux内核内存管理概要](memory_overview.md)
+
+[memory phycial layout分析方法](memory_layout_anaysis.html)
+
+[内核页表及应用](memory_pageing_table.html)
+
+FOTA
+---
+[FOTA流程](fota.html)
+
+Download Mode
+---
+[Download Mode流程](downloadmode.html)
+
+
+开发环境搭建
+---
+
+[开发调试环境gdb/crash/t32](env-git.html)
+
+[vim命令及插件](env-vim.html)
+
+[git常用命令](env-git.html)
+
 
 
 
