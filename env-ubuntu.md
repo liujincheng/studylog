@@ -1,12 +1,12 @@
-# Ubuntu 
-## 风扇狂转 
-进入 Ubuntu 14.04/14.10，在“系统设置”--“软件和更新”中找到“附加驱动”。默认使用的是开源的 Nouveau 驱动。我们试试软件源提供的私有（闭源）驱动--Nvidia 331 驱动。 
+# Ubuntu
+## 风扇狂转
+进入 Ubuntu 14.04/14.10，在“系统设置”--“软件和更新”中找到“附加驱动”。默认使用的是开源的 Nouveau 驱动。我们试试软件源提供的私有（闭源）驱动--Nvidia 331 驱动。
 
-## amule 
+## amule
 更新kad网络
-1http://upd.emule-security.org/nodes.dat
-2http://kademlia.ru/download/nodes.dat 
-3http://sn.im/nodes.dat
+1. http://upd.emule-security.org/nodes.dat
+2. http://kademlia.ru/download/nodes.dat
+3. http://sn.im/nodes.dat
 
 ## 常用软件
 * 为知笔记
@@ -17,7 +17,7 @@
 * wps，需要添加支持lib32 arch multiarch
 * stardict
 * xmind， v3.5.0.201410310637
-* sougou 
+* sougou
 * gedit-plugins
 * openconect，  Cicso openvpn connect
 * evolution   mail client
@@ -57,20 +57,20 @@ secureCRT作串口工具，乱码太多，所以没有办法，尝试使用minic
 ##服务器侧：
 需要安装的软件：
 
-  > sudo apt-get install nfs-utils  
-  > sudo apt-get install nfs-kernel-server  
+  > sudo apt-get install nfs-utils
+  > sudo apt-get install nfs-kernel-server
 
 对应的配置文件：
 * cat /etc/export     共享文件夹的路径
-    /home/kernel/HTC_Codebase/MTK *(insecure,rw,sync,no_subtree_check,no_root_squash)  
-    insecure表示允许nfs使用大于1024的端口号  
-    no_root_squash表示从client映射到服务器端使用的帐号  
+    /home/kernel/HTC_Codebase/MTK *(insecure,rw,sync,no_subtree_check,no_root_squash)
+    insecure表示允许nfs使用大于1024的端口号
+    no_root_squash表示从client映射到服务器端使用的帐号
 * /etc/default/nfs-kernel-server /etc/default/nfs-common    NFS服务器的设置，比如禁用NFS4
 
 相关的命令：
 
-  > sudo /etc/init.d/portmap restart  
-  > sudo /etc/init.d/nfs-kernel-server restart   
+  > sudo /etc/init.d/portmap restart
+  > sudo /etc/init.d/nfs-kernel-server restart
 
 ## 客户端
 需要安装的软件
@@ -79,38 +79,38 @@ secureCRT作串口工具，乱码太多，所以没有办法，尝试使用minic
 使用的命令
   > sudo mount -t nfs4 -o nolock 10.33.137.246:/home/kernel/HTC_Codebase/export KERNEL_SERVER
 
-或者添加这一行到/etc/fstab 
+或者添加这一行到/etc/fstab
   > 10.33.137.246:/home/kernel/HTC_Codebase /home/liu/KERNEL_SERVER nfs4 nolock    注意，这里后面没有0 0
 
 再mount -a
 
 ## 出现的问题：
 1.  mount.nfs4: access denied by server while mounting 10.33.137.113:/home/kernel/HTC_Codebase/MTK
-原因：  
-可能与selinux、iptables、以及相应文件夹没有777权限有关。  
-但我查的时候，已经将待export的文件夹，以及它的子文件夹权限全部设置为777了，仍然不行。  
-最后尝试在其他目录export文件夹，OK。原来，因为 /home/kernel/HTC_Codebase是挂载的磁盘，对应的文件夹权限只有700，所以导致无法获取到superblock。  
+原因：
+可能与selinux、iptables、以及相应文件夹没有777权限有关。
+但我查的时候，已经将待export的文件夹，以及它的子文件夹权限全部设置为777了，仍然不行。
+最后尝试在其他目录export文件夹，OK。原来，因为 /home/kernel/HTC_Codebase是挂载的磁盘，对应的文件夹权限只有700，所以导致无法获取到superblock。
 
 # Samba
 使用到的命令
-  > smbpasswd -a liu    添加samba用户liu，并配置密码   
-  > chkconfig smb on  
-  > chkconfig nmb on  
-  > service smb start   
-  > service nmb start  
-  > iptables -F  或  systemctl disable iptables  
-  > setenforce  0  或  vi /etc/selinux/config  把SELINUX=enforce 改成disabled就可以了。后者需要重启。  
-  > 可能还需要修改/etc/samba/smb.conf中。  
+  > smbpasswd -a liu    添加samba用户liu，并配置密码
+  > chkconfig smb on
+  > chkconfig nmb on
+  > service smb start
+  > service nmb start
+  > iptables -F  或  systemctl disable iptables
+  > setenforce  0  或  vi /etc/selinux/config  把SELINUX=enforce 改成disabled就可以了。后者需要重启。
+  > 可能还需要修改/etc/samba/smb.conf中。
 
 强制使用某一个用户登录samba
-  > http://wiki.ubuntu.org.cn/Samba  
-  > force user = nobody  
-  > force group = nogrou  
+  > http://wiki.ubuntu.org.cn/Samba
+  > force user = nobody
+  > force group = nogrou
 
 # Virtual box
 共享文件夹
-  > net use H: \\vboxsvr\Downloads  
-  > mount -t vbox  
+  > net use H: \\vboxsvr\Downloads
+  > mount -t vbox
 
 # host 设置
 国内访问drive.google.com
@@ -124,8 +124,8 @@ secureCRT作串口工具，乱码太多，所以没有办法，尝试使用minic
 
 3. 修改/etc/pptpd.conf
 这个配置文件内容很简单，主要需要修改的就是文件末尾的localip和remoteip
-  > #localip 192.168.0.1  
-  > #remoteip 192.168.0.234-238,192.168.0.245  
+  > #localip 192.168.0.1
+  > #remoteip 192.168.0.234-238,192.168.0.245
 
 4. 修改/etc/ppp/chap-secrets
 这个文件名中保存了访问VPN的用户名密码，格式如下：
@@ -135,28 +135,28 @@ secureCRT作串口工具，乱码太多，所以没有办法，尝试使用minic
  Username和password都是明文；pptpd代表服务名，和/etc/ppp/options.pptpd里的name对应，通常默认值就是pptpd；最后一项是分配这个用户的ip，*代表随机分配。
 
 5. 设置dns地址/etc/ppp/options.pptpd 或/etc/ppp/options
-  > ms-dns 8.8.8.8  
-  > ms-dns 4.4.4.4  
+  > ms-dns 8.8.8.8
+  > ms-dns 4.4.4.4
 
 6. 重启pptpd
   > chkconfig pptpd on  设置开启启动pptpd
   > ps aux可以看到进程已经启动。
 
 7. 开启网络转发
-  > echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf   
-  > sysctl -p  
-  > cat /proc/sys/net/ipv4/ip_forward  
-  > echo 1 > /proc/sys/net/ipv4/ip_forward  
+  > echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
+  > sysctl -p
+  > cat /proc/sys/net/ipv4/ip_forward
+  > echo 1 > /proc/sys/net/ipv4/ip_forward
 可以看到，ip转发功能已经打开
 
 8. 配置iptables转发规则
-  > iptables -A FORWARD -s 192.168.0.0/24 -j ACCEPT  
-  > iptables -t nat -A POSTROUTING -s 192.168.0.0/24 -o eth0 -j MASQUERADE  
-  > iptables-save > /etc/iptables-rules  
+  > iptables -A FORWARD -s 192.168.0.0/24 -j ACCEPT
+  > iptables -t nat -A POSTROUTING -s 192.168.0.0/24 -o eth0 -j MASQUERADE
+  > iptables-save > /etc/iptables-rules
 转发来自192.168.0.0网段的报文，并设置SNAT地址转换。并保存当前配置到配置文件中。
 
 9. 将iptables规则添加到ppp的启动脚本/etc/ppp/ip-up中，这样每次ppp连接up的时候，都会配置iptables规则。
-  > iptables-restore < /etc/iptables-rules 
+  > iptables-restore < /etc/iptables-rules
 
 10. 在电脑上验证：Windows XP
 控制面板 -> 网络连接 -> 新建连接向导 -> 连接到我的工作场所的网络 -> 虚拟专用网络连接 -> 公司名，随意取，作为连接名称 -> 不初始化连接 -> 填写远程虚拟主机的IP地址 -> 不使用智能卡 -> 完成。
@@ -216,5 +216,5 @@ lamp http://wiki.qcloud.com/wiki/CentOS%E7%8E%AF%E5%A2%83%E9%85%8D%E7%BD%AE
 ftp    http://wiki.qcloud.com/wiki/%E9%83%A8%E7%BD%B2%E4%BB%A3%E7%A0%81%E5%88%B0CentOS%E4%BA%91%E6%9C%8D%E5%8A%A1%E5%99%A8
 
 #杂项
-##linux特殊字符 
+##linux特殊字符
 ctrl+v+m
