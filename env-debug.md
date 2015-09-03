@@ -235,6 +235,44 @@ support 1024 modules
 # Ftrace [待验证]
 linux提供的性能分析工具。工具考虑了中断、进程切换对性能的影响。
 
+找到function tracer有的时候无法设置的原因，能够稳定地使用function tracer观察某个进程在内核层面的调度情况。
+
+```
+echo nop > set_event。
+adb pull /sys/kernel/debug/trace_pipe
+echo function > current_tracer    此时tracing_on为0，set_event为空
+echo nop > current_tracer   此时可以关闭function tracer
+echo 912 > set_ftrace_pid  在转圈阶段，尝试trace system_server，可能因为此时大多数进程都没有运行，所以trace不到函数调用。但是正常开机后，可以trace到该进程所有的函数调用，也trace到sched_switch event。
+```
+
+* 正常开机后，也即系统各进程都完全启动后，查看set_event中多了一些事件。应该是某些debug deamon加上去的。这些事件包括sched_wakeup, sched_frequency, ext4, block, workqueue相关。
+* 观察某个进程的文件读写操作在内核层面的函数调用关系。
+* 观察信号量操作在内核层面的函数调用关系。
+* 使用MTK的GAT工具，观察系统性能
+* 整理set_event中支持的event，找出与sched、irq相关的部分。
+
+# linux的调试工具kprobes
+该工具可以向kernel的任意函数开始处，甚至函数的任意位置插入一个桩，在这个桩函数中，可以printk，也可以打印进程信息。桩函数需要预先编译到kernel中，但是桩的位置可以在kernel运行时给定，不需要编译和重新引导。
+
+一个可用的应用场景，在桩函数中dump_stack，甚至打印栈和寄存器的信息，从而分析函数的执行流程。
+
+目前6753的kernel中没有包含该工具。
+
+kprobes编译时，无法在.config中产生相应的配置选项，也没有提示信息出来。
+
+arch/arm64/Kconfig没有source arch/Kconfig
+
+KPROBES依赖于HAVE_KPROBES，但是后者没有产生
+
+HAVE_KPROBES的参数仅有"bool"，导致conf系统忽略它。将其参数修改为'bool "have kprobes"'。之后编译kernel的时候提示错误，要求输入HAVE_KPROBES的配置选项。
+
+arm64不支持kprobes，提示如下错误。include/linux/kprobes.h:45:25: fatal error: asm/kprobes.h: No such file or directory。 arm64支持kprobes的代码还没有进入mainline kernel。
+
+kernel的patch为：https://lwn.net/Articles/648203/，仍在开发中，最近的开发时间是2015/6/15，开发者为linora
+
+下一步，希望参与到这个patch的开发和验证中。
+
+
 # KDB [待验证]
 可检查内存、进程列表、kmsg，在特定情况下也可以打断电。
 
