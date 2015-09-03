@@ -1,3 +1,5 @@
+% 调试环境搭建及使用说明
+
 # gdb
 ## 使用方法
 1. 使用gdb加载core文件。如下所示。可以看到动态链接库的符号没有加载。
@@ -6,15 +8,15 @@
 
 2. 设置动态链接库的符号
 
-  > set solib-search-path <path to system/lib>     
-  > set sysroot out/target/product/htc_a50ml/symbols/   
+  > set solib-search-path <path to system/lib>
+  > set sysroot out/target/product/htc_a50ml/symbols/
 
 第一个命令设置之后，会重新搜索动态链接库。另外一个设置符号表的路径，但是这个命令设置完后不会重新去搜索符号表。
 
 3. 设置代码搜索路径
 
-  > set directories ~/code2/share/MT6753_SHEP/   设置代码搜索路径，默认搜索当前目录和编译目录  
-  > show directories          Source directories searched: /home/liu/code2/share/MT6753_SHEP:$cdir:$cwd  
+  > set directories ~/code2/share/MT6753_SHEP/   设置代码搜索路径，默认搜索当前目录和编译目录
+  > show directories          Source directories searched: /home/liu/code2/share/MT6753_SHEP:$cdir:$cwd
 
 但是如果vmlinux或符号文件不是local编译，而是从服务器上download下来，符号中使用完整路径，使用set directories不好使。此时可使用如下目录，将符号中的完整路径替换为本地的路径信息。
 
@@ -22,24 +24,62 @@
 
 4. 查看现场
 
-  > bt  查看backtrace  
-  > info thread   查看thread信息。对于KE，查看cpu信息。  
-  > info registers  查看寄存器信息  
-  > info frame [frame-number]  可以查看每一层函数调用时的寄存器地址  
-  > frame <frame-number>   查看某一个frame对应的source code  
+  > bt  查看backtrace
+  > info thread   查看thread信息。对于KE，查看cpu信息。
+  > info registers  查看寄存器信息
+  > info frame [frame-number]  可以查看每一层函数调用时的寄存器地址
+  > frame <frame-number>   查看某一个frame对应的source code
 
 ## 应用场景1，使用gdb查看watchdog time out issue
 
 ## 应用场景2，使用gdb查看memory corruption issue
 
 ## 常用命令
-### 查看数组 
+### 查看数组
 *pointer@number_of_elements
+
+## android中生成coredump
+1. 在init.mt6735.rc去掉import init.aee.rc前的注释
+
+init.mt6735.rc:6:#import init.aee.rc
+
+2. 修改init.aee.rc，增加user mode下做coredump
+
+```
+on property:ro.build.type=user
+    write /proc/sys/fs/suid_dumpable 2
+    write /proc/sys/kernel/core_pattern "|/system/bin/aee_core_forwarder /data/core/ %p %s UID=%u GID=%g"
+on init
+    write /proc/self/coredump_filter 39
+```
+
+3. 修改init.rc放开resource限制。
+或使用ulimit命令修改。这个改动放在init.aee.rc中应该也可以，不过我没有试过。
+
+```
+on boot
++    # test for coredump
++    setrlimit 4 -1 -1
++
+```
+
+### 效果
+实际测试下来，eng mode下只有system_server和surface flinger可以产生dbg文件。user mode下，debuggerd无法产生dbg文件。
+
+ aee mode  process          command   db file         size
+ --------  --------------   --------  --------------  ----
+ 4         system_server    kill -31  db.fatal.00.NE  21423448
+ 4         surface_flinger  kill -31  db.fatal.01.NE  1412823
+ 4         drmserver        kill -31  N/A             N/A
+ 3         drmserver        kill -31  db.02.NE        18450705
+ 3         debuggerd        kill -31  N/A             N/A
+
+Table: coredump test result
 
 ## remote gdb
 1. 设置adb，将手机的1234端口号映射到host的1234号。
 
-  > adb forward tcp:1234 tcp:1234
+  > adb forward tcp:1233 tcp:1234
 
 2. 在target上启动gdbserver调试进程
 
@@ -47,13 +87,13 @@
 
 3. 在host上使用gdb连接gdb server
 
-  > aarch64-linux-android-gdb  
-  > file xxx/ljctest  
-  > set sysroot out/target/product/htc_a50ml/symbols/  
-  > set solib-search-path <path to system/lib>   # For A50ML out/target/product/htc_a50ml/system/lib  
-  > target remote localhost:1234  
-  > b main  
-  > continue  
+  > aarch64-linux-android-gdb
+  > file xxx/ljctest
+  > set sysroot out/target/product/htc_a50ml/symbols/
+  > set solib-search-path <path to system/lib>   # For A50ML out/target/product/htc_a50ml/system/lib
+  > target remote localhost:1234
+  > b main
+  > continue
 
 # crash
 ## 安装流程
@@ -82,7 +122,7 @@ sudo make install
 * mount   加载的partition
 * net  ifconfig接口
 * ps   进程列表
-* pte    page table entry 
+* pte    page table entry
 * sig  打印各个进程的所有信号处理函数
 * sys  打印一些设备信息，用途好像不是太大。
 * task 打印某一个进程的状态信息
@@ -121,7 +161,7 @@ sudo make install
 # bionic debug
 Android提供的原生内存调试工具，可分析进程的内存泄漏。原理，在内存分配与释放的时候打桩。开debug 15复现，抓取system server 的core dump，分析native heap占用情况
 
-## 生成coredump的方法
+## 开启debug 15
 需要重新编译bootimg，参考步骤如下：请使用eng版本, 在vendor/mediatek/proprietary/external/aee/config_external/init.aee.customer.rc添加:
 
 ```
@@ -134,7 +174,7 @@ adb shell setprop persist.debug15.config 0x2a003024
 adb reboot
 ```
 
-这时会重启手机，开机后就进入malloc debug方式，此时overhead较重，可能会有一些不预期的ANR(出现ANR时请点击等待)，但这不影响测试 
+这时会重启手机，开机后就进入malloc debug方式，此时overhead较重，可能会有一些不预期的ANR(出现ANR时请点击等待)，但这不影响测试
 
 然后观察system_server memory占用情况 ，可透过adb shell showmap [system_server_pid] 确认里面的[heap]占用情况，当出现占用比较大时，如下，
             138632   138564   132179        0     6784        0   131780    2 [heap]
@@ -240,6 +280,6 @@ linux提供的性能分析工具。工具考虑了中断、进程切换对性能
 
 6. 安装arm64补丁  trace32_arm64_patch
 * demo/arm64
-* bin/pc_linux64/t32marm* 
+* bin/pc_linux64/t32marm*
 
 
