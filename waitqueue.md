@@ -86,8 +86,8 @@ do {wait_queue \
 ```
 
 ##等待队列的三个主要接口
-void fastcall add_wait_queue(wait_queue_head_t *q, wait_queue_t *wait)  
-void fastcall add_wait_queue_exclusive(wait_queue_head_t *q, wait_queue_t *wait)  
+void fastcall add_wait_queue(wait_queue_head_t *q, wait_queue_t *wait)
+void fastcall add_wait_queue_exclusive(wait_queue_head_t *q, wait_queue_t *wait)
 给定等待队列的链表头部，将等待队列条目添加到队列中。
 当该接口带有_exclusive后缀，表示等待队列的flag将会被置上WQ_FLAG_EXCLUSIVE位。
 
@@ -127,14 +127,14 @@ do {wait_queue \
 select传递到内核态后，首先调用sys_select，最终调用do_select执行。它初始化一个用于执行poll的等待队列事件列表，然后将列表中的等待队列事件添加到各个文件的wait_queue_head下。当事件发生时，当前进程会被唤醒。
 ```c
  poll_initwait(&table); table的类型为poll_wqueues。
-     +-->init_poll_funcptr(&pwq->pt, __pollwait); 该函数会将poll等待队列的poll_table初始化为_poll_wait。 
+     +-->init_poll_funcptr(&pwq->pt, __pollwait); 该函数会将poll等待队列的poll_table初始化为_poll_wait。
         每个poll_wqueues可以存(WQUEUES_STACK_ALLOC / sizeof(struct poll_table_entry))个poll_table。
  wait = &table.pt; //poll_table *wait，
  if (!*timeout)
   wait = NULL;
 ```
 
-static void __pollwait(struct file *filp, wait_queue_head_t *wait_address, poll_table *p)  
+static void __pollwait(struct file *filp, wait_queue_head_t *wait_address, poll_table *p)
 该函数首先找poll_table所对应的poll_wqeues申请一个poll_table_entry。所有entry以数组的形式存放在poll_wqueue中。
 然后初始化这个poll_table_entry，并将它添加到调用该函数的wait_queue中。add_wait_queue(wait_address, &entry->wait); 现在的问题核心在于，wait_address是谁，也就是等待队列头在哪里。
 
@@ -142,5 +142,9 @@ mask = (*f_op->poll)(file, retval ? NULL : wait); 遍历传入的所有fd，得�
 在tcp_poll中，将前面申请的poll_table添加到文件的sk_sleep链表头下。
 
 poll_wait(file, sk->sk_sleep, wait);
+
+
+
+
 
 
